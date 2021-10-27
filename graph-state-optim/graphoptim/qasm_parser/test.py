@@ -5,5 +5,5 @@ node = Node(MeasurementBase)
 def test_node():
     node.add_node(Node)
 
-def test_parse_dag()
+def test_parse_dag():
     pass
