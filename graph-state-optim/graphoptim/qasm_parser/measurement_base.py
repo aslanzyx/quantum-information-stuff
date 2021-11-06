@@ -24,42 +24,42 @@ class MeasurementBase:
     Measurement base of a qubit
     """
 
-    def __init__(self, plane=MeasurementPlane.XY_PLANE, angle=0):
-        """
+    @staticmethod
+    def parse_measurement_base(base: str):
+        if base == 'x':
+            return MeasurementBase([1, 0, 0])
+        elif base == 'y':
+            return MeasurementBase([0, 1, 0])
+        elif base == 't':
+            return MeasurementBase([1, 1, 0])
+        else:
+            return None
 
-        :param plane:
-        :param angle:
+    def __init__(self, vector):
         """
-        self.vector: (int, int, int) = {
-            (MeasurementPlane.XY_PLANE, 0): [0, 0, 0],
-            (MeasurementPlane.XY_PLANE, 0): [0, 0, 0],
-            (MeasurementPlane.XY_PLANE, 0): [0, 0, 0],
-            (MeasurementPlane.XY_PLANE, 0): [0, 0, 0],
-            (MeasurementPlane.XY_PLANE, 0): [0, 0, 0],
-            (MeasurementPlane.XY_PLANE, 0): [0, 0, 0],
-            (MeasurementPlane.XY_PLANE, 0): [0, 0, 0],
-            (MeasurementPlane.XY_PLANE, 0): [0, 0, 0],
-            (MeasurementPlane.XY_PLANE, 0): [0, 0, 0],
-        }[(plane, angle)]
+        """
+        self.vector: [int, int, int] = vector
 
     def is_pauli(self) -> bool:
         return sum([abs(i) for i in self.vector]) == 1
 
-    def to_pauli_base(self) -> (str, int):
+    def get_base(self) -> (str, int):
         if self.vector[1] == 0 and self.vector[2] == 0:
             return "x", self.vector[0]
         elif self.vector[0] == 0 and self.vector[2] == 0:
             return "y", self.vector[1]
         elif self.vector[0] == 0 and self.vector[1] == 0:
             return "z", self.vector[2]
+        else:
+            return None
 
     def rotate_sqrt_x(self, direction):
         self.vector[1], self.vector[2] = \
             direction * self.vector[2], -direction * self.vector[1]
 
     def rotate_sqrt_y(self, direction):
-        self.vector[3], self.vector[1] = \
-            direction * self.vector[1], -direction * self.vector[3]
+        self.vector[2], self.vector[0] = \
+            direction * self.vector[0], -direction * self.vector[2]
 
     def rotate_sqrt_z(self, direction) -> None:
         self.vector[0], self.vector[1] = \
@@ -69,19 +69,22 @@ class MeasurementBase:
         """
         rotate the measurement base about X axis
         """
-        self.vector = (self.vector[0], -self.vector[1], -self.vector[2])
+        # self.vector = (self.vector[0], -self.vector[1], -self.vector[2])
+        self.vector[1], self.vector[2] = -self.vector[1], -self.vector[2]
 
     def rotate_z(self) -> None:
         """
         Rotate the measurement base about Z axis
         """
-        self.vector = (-self.vector[0], -self.vector[1], self.vector[2])
+        # self.vector = (-self.vector[0], -self.vector[1], self.vector[2])
+        self.vector[0], self.vector[1] = -self.vector[0], -self.vector[1]
 
     def rotate_y(self) -> None:
         """
         Rotate the measurement base about X axis
         """
-        self.vector = (-self.vector[0], self.vector[1], -self.vector[2])
+        # self.vector = (-self.vector[0], self.vector[1], -self.vector[2])
+        self.vector[0], self.vector[2] = -self.vector[0], -self.vector[2]
 
     #     """
     #     Update measurement base with rotation gate

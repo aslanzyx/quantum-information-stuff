@@ -1,5 +1,4 @@
 qreg q[3];
-creg c[3];
 
 h q[1];
 h q[2];
