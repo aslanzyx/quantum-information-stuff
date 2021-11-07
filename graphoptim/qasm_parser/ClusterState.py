@@ -1,6 +1,7 @@
 import numpy as np
 from typing import List
-from . import MeasurementBase, GraphState
+from . import GraphState
+from ..graph_state import MeasurementBase
 
 
 # X -> [+X][-X]

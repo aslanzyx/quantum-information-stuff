@@ -1,6 +1,7 @@
-import numpy as np
-
-from measurement_base import MeasurementBase
+# from MeasurementBase import MeasurementBase
+# from Node import Node
+from graphoptim.graph_state.Node import Node
+from graphoptim.graph_state.MeasurementBase import MeasurementBase
 
 
 def test_is_pauli():
@@ -49,25 +50,57 @@ def test_rotation():
     print("pass case: positive sqrt z rotation")
 
 
+
+
+
+def stabilizer_generator():
+    links = [
+        {1, 2},
+        {0, 2},
+        {0, 1}
+    ]
+
+    measurements = [
+        (1, 0, 0),
+        (0, 1, 0),
+        (1, 1, 0),
+    ]
+
+
+
+
 def main():
     test_is_pauli()
     test_rotation()
+    test_node()
 
 
-# main()
+main()
 
-f = open("teleportation.qasm")
-a = f.read().splitlines()
-f.close()
-print(a)
+# f = open("teleportation.qasm")
+# a = f.read().splitlines()
+# f.close()
+# print(a)
+#
+# _b = np.zeros((5, 2))
+# _b[1, 1] += 4
+# print(np.sign(_b))
 
-_b = np.zeros((5, 2))
-_b[1, 1] += 4
-print(np.sign(_b))
-
-from qiskit import QuantumCircuit
-
-qc = QuantumCircuit(4, 4)
-qc.h([0, 1, 2, 3])
-qc.measure(0,0)
-qc.draw()
+# from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+#
+# qr = QuantumRegister(4)
+# c0 = ClassicalRegister(1)
+# c1 = ClassicalRegister(1)
+# qc = QuantumCircuit(qr, c0, c1)
+#
+# qc.h([0, 1, 2, 3])
+# qc.cz(0, 1)
+# qc.cz(1, 2)
+# qc.cz(2, 3)
+# qc.h(0)
+# qc.measure(0, c0[0])
+# qc.x(qr[1]).c_if(c0, 1)
+# qc.h(1)
+# qc.measure(1, c1[0])
+# qc.x(qr[2]).c_if(c1, 1)
+# print(qc.draw())

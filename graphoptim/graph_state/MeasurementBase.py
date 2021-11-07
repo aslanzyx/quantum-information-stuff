@@ -1,28 +1,4 @@
-import enum
-
-
-class MeasurementPlane(enum.Enum):
-    XY_PLANE = "xy"
-    YZ_PLANE = "yz"
-    ZX_PLANE = "zx"
-
-
-class LocalUnitary(enum.Enum):
-    SQRT_X = 1
-    SQRT_Y = 2
-    SQRT_Z = 3
-    Z = 0
-
-
-class DIRECTION(enum.Enum):
-    POSITIVE = +1
-    NEGATIVE = -1
-
-
 class MeasurementBase:
-    """
-    Measurement base of a qubit
-    """
 
     @staticmethod
     def parse_measurement_base(base: str):
@@ -30,20 +6,20 @@ class MeasurementBase:
             return MeasurementBase([1, 0, 0])
         elif base == 'y':
             return MeasurementBase([0, 1, 0])
+        elif base == '-x':
+            return MeasurementBase([-1, 0, 0])
         elif base == 't':
             return MeasurementBase([1, 1, 0])
         else:
             return None
 
     def __init__(self, vector):
-        """
-        """
         self.vector: [int, int, int] = vector
 
     def is_pauli(self) -> bool:
         return sum([abs(i) for i in self.vector]) == 1
 
-    def get_base(self) -> (str, int):
+    def to_pauli(self) -> (str, int):
         if self.vector[1] == 0 and self.vector[2] == 0:
             return "x", self.vector[0]
         elif self.vector[0] == 0 and self.vector[2] == 0:
@@ -69,21 +45,18 @@ class MeasurementBase:
         """
         rotate the measurement base about X axis
         """
-        # self.vector = (self.vector[0], -self.vector[1], -self.vector[2])
         self.vector[1], self.vector[2] = -self.vector[1], -self.vector[2]
 
     def rotate_z(self) -> None:
         """
         Rotate the measurement base about Z axis
         """
-        # self.vector = (-self.vector[0], -self.vector[1], self.vector[2])
         self.vector[0], self.vector[1] = -self.vector[0], -self.vector[1]
 
     def rotate_y(self) -> None:
         """
         Rotate the measurement base about X axis
         """
-        # self.vector = (-self.vector[0], self.vector[1], -self.vector[2])
         self.vector[0], self.vector[2] = -self.vector[0], -self.vector[2]
 
     #     """
@@ -104,3 +77,20 @@ class MeasurementBase:
     #     [Z](Y,Z,a) -> (Y,Z,pi-a)
     #     [Z](Z,X,a) -> (Z,X,-a)
     #     """
+
+# class MeasurementPlane(enum.Enum):
+#     XY_PLANE = "xy"
+#     YZ_PLANE = "yz"
+#     ZX_PLANE = "zx"
+#
+#
+# class LocalUnitary(enum.Enum):
+#     SQRT_X = 1
+#     SQRT_Y = 2
+#     SQRT_Z = 3
+#     Z = 0
+#
+#
+# class DIRECTION(enum.Enum):
+#     POSITIVE = +1
+#     NEGATIVE = -1
