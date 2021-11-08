@@ -1,12 +1,9 @@
 from typing import Set
 
-from graphoptim.graph_state.MeasurementBase import MeasurementBase
+from graphoptim.graph_state import MeasurementBase
 
 
 class Node:
-    """
-    Node in graph state
-    """
 
     def __init__(self, base: MeasurementBase):
         self.meas: MeasurementBase = base
@@ -20,7 +17,7 @@ class Node:
         self.neighbours.remove(node)
         node.neighbours.remove(self)
 
-    def local_complementation(self):
+    def local_complement(self):
         for node in self.neighbours:
             for other in self.neighbours:
                 if other in node.neighbours:
@@ -30,7 +27,8 @@ class Node:
 
     def disconnect(self):
         for node in self.neighbours:
-            self.unlink(node)
+            node.neighbours.remove(self)
+        self.neighbours = set()
 
     def is_pauli(self):
         return self.meas.is_pauli()
@@ -49,27 +47,27 @@ class Node:
     def x_measure(self, direction):
         b = self.neighbours.pop()
         self.neighbours.add(b)
-        b.meas.rotate_sqrt_y(direction)
+        b.meas.rotate_sqrt_y(-direction)
         if direction == 1:
-            for node in b.neighbours.difference(self.neighbours):
+            for node in self.neighbours.difference(b.neighbours).difference({b}):
                 node.meas.rotate_z()
         else:
-            for node in self.neighbours.difference(b.neighbours):
+            for node in b.neighbours.difference(self.neighbours).difference({self}):
                 node.meas.rotate_z()
-        b.local_complementation()
-        self.local_complementation()
+        b.local_complement()
+        self.local_complement()
         self.disconnect()
-        b.local_complementation()
+        b.local_complement()
         pass
 
     def y_measure(self, direction):
         for node in self.neighbours:
             node.meas.rotate_sqrt_z(direction)
-        self.local_complementation()
+        self.local_complement()
         self.disconnect()
 
-    def z_measure(self, flag):
-        if flag:
+    def z_measure(self, direction):
+        if direction == -1:
             for node in self.neighbours:
                 node.meas.rotate_z()
         self.disconnect()
