@@ -1,0 +1,93 @@
+graph {
+	i0IN [label="i0IN:(XY, 1/4)"]
+	i0IN -- i0STEP
+	i0STEP [label="i0STEP:()"]
+	i0STEP -- h0X0
+	h0X0 [label="h0X0:()"]
+	h0X0 -- h0Y1
+	h0Y1 [label="h0Y1:()"]
+	h0Y1 -- h0Y2
+	h0Y2 [label="h0Y2:()"]
+	h0Y2 -- h0Y3
+	h0Y3 [label="h0Y3:()"]
+	h0Y3 -- t0T0
+	t0T0 [label="t0T0:(XY, 1/4)"]
+	t0T0 -- t0X1
+	t0X1 [label="t0X1:()"]
+	t0X1 -- "z0-X0"
+	"z0-X0" [label="z0-X0:()"]
+	"z0-X0" -- z0X0
+	z0X0 [label="z0X0:()"]
+	z0X0 -- t1T0
+	t1T0 [label="t1T0:(XY, 1/4)"]
+	t1T0 -- t1X1
+	t1X1 [label="t1X1:()"]
+	t1X1 -- x0X0
+	x0X0 [label="x0X0:()"]
+	x0X0 -- "x0-X1"
+	"x0-X1" [label="x0-X1:()"]
+	"x0-X1" -- o0OUT
+	o0OUT [label="o0OUT:(XY, 1/4)"]
+	i1IN [label="i1IN:(XY, 1/4)"]
+	i1IN -- i1STEP
+	i1STEP [label="i1STEP:()"]
+	i1STEP -- h1Y0
+	h1Y0 [label="h1Y0:()"]
+	h1Y0 -- h1X1
+	h1X1 [label="h1X1:()"]
+	h1X1 -- t2T0
+	t2T0 [label="t2T0:(XY, 1/4)"]
+	t2T0 -- t2X1
+	t2X1 [label="t2X1:()"]
+	t2X1 -- s0Y0
+	s0Y0 [label="s0Y0:()"]
+	s0Y0 -- s0X1
+	s0X1 [label="s0X1:()"]
+	s0X1 -- t3T0
+	t3T0 [label="t3T0:(XY, 1/4)"]
+	t3T0 -- t3X1
+	t3X1 [label="t3X1:()"]
+	t3X1 -- h2X0
+	h2X0 [label="h2X0:()"]
+	h2X0 -- h2Y1
+	h2Y1 [label="h2Y1:()"]
+	h2Y1 -- h2Y2
+	h2Y2 [label="h2Y2:()"]
+	h2Y2 -- h2Y3
+	h2Y3 [label="h2Y3:()"]
+	h2Y3 -- x1X0
+	x1X0 [label="x1X0:()"]
+	x1X0 -- x1Y1
+	x1Y1 [label="x1Y1:()"]
+	x1Y1 -- x1Y2
+	x1Y2 [label="x1Y2:()"]
+	x1Y2 -- x1Y3
+	x1Y3 [label="x1Y3:()"]
+	x1Y3 -- o1OUT
+	o1OUT [label="o1OUT:(XY, 1/4)"]
+	"cnot0-X0" [label="cnot0-X0:()"]
+	"cnot0-X0" -- cnot0Y0
+	cnot0X1 [label="cnot0X1:()"]
+	cnot0X1 -- cnot0X2
+	cnot0X2 [label="cnot0X2:()"]
+	cnot0X2 -- cnot0X3
+	cnot0X3 [label="cnot0X3:()"]
+	cnot0X3 -- cnot0Y6
+	cnot0X4 [label="cnot0X4:()"]
+	cnot0X4 -- cnot0Y6
+	cnot0X4 -- cnot0X5
+	cnot0Y0 [label="cnot0Y0:()"]
+	cnot0Y0 -- cnot0Y1
+	cnot0Y1 [label="cnot0Y1:()"]
+	cnot0Y1 -- cnot0Y2
+	cnot0Y2 [label="cnot0Y2:()"]
+	cnot0Y2 -- cnot0Y3
+	cnot0Y2 -- cnot0Y4
+	cnot0Y3 [label="cnot0Y3:()"]
+	cnot0Y3 -- cnot0Y6
+	cnot0Y4 [label="cnot0Y4:()"]
+	cnot0Y4 -- cnot0Y5
+	cnot0Y6 [label="cnot0Y6:()"]
+	cnot0X5 [label="cnot0X5:()"]
+	cnot0Y5 [label="cnot0Y5:()"]
+}

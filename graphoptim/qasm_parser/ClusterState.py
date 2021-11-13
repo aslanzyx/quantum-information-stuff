@@ -1,6 +1,6 @@
 import numpy as np
 from typing import List
-from ..graph_state import MeasurementBase, GraphState
+from graphoptim.graph_state import MeasurementBase, GraphState
 
 
 # X -> [+X][-X]
@@ -8,9 +8,9 @@ from ..graph_state import MeasurementBase, GraphState
 # H -> [+X][+Y][+Y][+Y]
 # S -> [+Y][+X]
 # T -> [+T][+X]
-# CNOT -> [+X][+Y][+Y][+Y][+Y][+Y]
+# CNOT -> [+X][+Y][+Y][+X][+Y][+Y]
 #                     ||||
-#         [+X][+X][+X][+Y][+X][+X]
+#         [+X][+X][+X][+X][+X][+X]
 
 class ClusterState:
     NAN = 0
@@ -25,15 +25,18 @@ class ClusterState:
         self.entanglement_reg: set = set()
 
     def add_rotation(self, operator, reg_id):
-        f = {
-            'x': self.add_x,
-            'z': self.add_z,
-            's': self.add_s,
-            't': self.add_t,
-            'h': self.add_h,
-        }[operator]
-        f(reg_id)
-        pass
+        if operator == 'x':
+            self.add_x(reg_id)
+        elif operator == 'z':
+            self.add_z(reg_id)
+        elif operator == 's':
+            self.add_s(reg_id)
+        elif operator == 't':
+            self.add_t(reg_id)
+        elif operator == 'h':
+            self.add_h(reg_id)
+        else:
+            print("Not available")
 
     def add_cnot(self, control_id: int, target_id: int) -> None:
         # compute the proper location to append the gate and update the pointers
@@ -77,10 +80,10 @@ class ClusterState:
             self.cluster[reg_id, ptr + j] = sequence[j]
         self.line_ptrs[reg_id] += len(sequence)
 
-    def to_graph_state(self):
-        dag, measurement_bases = self.to_dag()
-        GraphState.parse_dag(dag, measurement_bases)
+    def temporal_order(self):
+        pass
 
+    def to_graph_state(self) -> GraphState:
         pass
 
     def to_dag(self) -> (List[List[int]], List[MeasurementBase]):

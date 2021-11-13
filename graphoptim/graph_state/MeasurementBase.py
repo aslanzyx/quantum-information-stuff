@@ -1,20 +1,20 @@
-class MeasurementBase:
+from PauliOperator import BlochSphere
 
-    @staticmethod
-    def parse_measurement_base(base: str):
+
+class MeasurementBase(BlochSphere):
+
+    def __init__(self, base):
+        base = base.lower()
         if base == 'x':
-            return MeasurementBase([1, 0, 0])
+            super(MeasurementBase, self).__init__([1, 0, 0])
         elif base == 'y':
-            return MeasurementBase([0, 1, 0])
-        elif base == '-x':
-            return MeasurementBase([-1, 0, 0])
+            super(MeasurementBase, self).__init__([0, 1, 0])
+        elif base == 'z':
+            super(MeasurementBase, self).__init__([0, 0, 1])
         elif base == 't':
-            return MeasurementBase([1, 1, 0])
+            super(MeasurementBase, self).__init__([1, 1, 0])
         else:
-            return None
-
-    def __init__(self, vector):
-        self.vector: [int, int, int] = vector
+            print("Not available")
 
     def is_pauli(self) -> bool:
         return sum([abs(i) for i in self.vector]) == 1
@@ -29,35 +29,73 @@ class MeasurementBase:
         else:
             return None
 
-    def rotate_sqrt_x(self, direction):
-        self.vector[1], self.vector[2] = \
-            direction * self.vector[2], -direction * self.vector[1]
+    def __repr__(self):
+        if self.vector == [1, 1, 0]:
+            return "XY, 1/4"
+        elif self.vector == [-1, 1, 0]:
+            return "XY, 3/4"
+        elif self.vector == [1, -1, 0]:
+            return "XY, -1/4"
+        elif self.vector == [-1, -1, 0]:
+            return "XY, -3/4"
+        elif self.vector == [0, 1, 1]:
+            return "YZ, 1/4"
+        elif self.vector == [0, -1, 1]:
+            return "YZ, 3/4"
+        elif self.vector == [0, 1, -1]:
+            return "YZ, -1/4"
+        elif self.vector == [0, -1, -1]:
+            return "YZ, -3/4"
+        elif self.vector == [1, 0, 1]:
+            return "ZX, 1/4"
+        elif self.vector == [1, 0, -1]:
+            return "ZX, 3/4"
+        elif self.vector == [-1, 0, 1]:
+            return "ZX, -1/4"
+        elif self.vector == [-1, 0, -1]:
+            return "ZX, -3/4"
+        elif self.vector == [1, 0, 0]:
+            return 'X'
+        elif self.vector == [-1, 0, 0]:
+            return '-X'
+        elif self.vector == [0, 1, 0]:
+            return 'Y'
+        elif self.vector == [0, -1, 0]:
+            return '-Y'
+        elif self.vector == [0, 0, 1]:
+            return 'Z'
+        elif self.vector == [0, 0, -1]:
+            return '-Z'
 
-    def rotate_sqrt_y(self, direction):
-        self.vector[2], self.vector[0] = \
-            direction * self.vector[0], -direction * self.vector[2]
-
-    def rotate_sqrt_z(self, direction) -> None:
-        self.vector[0], self.vector[1] = \
-            direction * self.vector[1], -direction * self.vector[0]
-
-    def rotate_x(self) -> None:
-        """
-        rotate the measurement base about X axis
-        """
-        self.vector[1], self.vector[2] = -self.vector[1], -self.vector[2]
-
-    def rotate_z(self) -> None:
-        """
-        Rotate the measurement base about Z axis
-        """
-        self.vector[0], self.vector[1] = -self.vector[0], -self.vector[1]
-
-    def rotate_y(self) -> None:
-        """
-        Rotate the measurement base about X axis
-        """
-        self.vector[0], self.vector[2] = -self.vector[0], -self.vector[2]
+    # def rotate_sqrt_x(self, direction):
+    #     self.vector[1], self.vector[2] = \
+    #         direction * self.vector[2], -direction * self.vector[1]
+    #
+    # def rotate_sqrt_y(self, direction):
+    #     self.vector[2], self.vector[0] = \
+    #         direction * self.vector[0], -direction * self.vector[2]
+    #
+    # def rotate_sqrt_z(self, direction) -> None:
+    #     self.vector[0], self.vector[1] = \
+    #         direction * self.vector[1], -direction * self.vector[0]
+    #
+    # def rotate_x(self) -> None:
+    #     """
+    #     rotate the measurement base about X axis
+    #     """
+    #     self.vector[1], self.vector[2] = -self.vector[1], -self.vector[2]
+    #
+    # def rotate_z(self) -> None:
+    #     """
+    #     Rotate the measurement base about Z axis
+    #     """
+    #     self.vector[0], self.vector[1] = -self.vector[0], -self.vector[1]
+    #
+    # def rotate_y(self) -> None:
+    #     """
+    #     Rotate the measurement base about X axis
+    #     """
+    #     self.vector[0], self.vector[2] = -self.vector[0], -self.vector[2]
 
     #     """
     #     Update measurement base with rotation gate

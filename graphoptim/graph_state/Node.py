@@ -1,76 +1,109 @@
-from typing import Set
+from typing import Set, Dict
 
-from graphoptim.graph_state import MeasurementBase
+from graphoptim.graph_state import MeasurementBase, PauliOperator
 
 
 class Node:
 
-    def __init__(self, base: MeasurementBase):
-        self.meas: MeasurementBase = base
-        self.neighbours: Set[Node] = set()
+    def __init__(self, base: any, label: any):
+        self.label = label
+        self.base: MeasurementBase = MeasurementBase(base)
+        self.corrections: Dict[any, PauliOperator] = dict()
+        # self.neighbours: Set[Node] = set()
 
-    def link(self, node):
-        self.neighbours.add(node)
-        node.neighbours.add(self)
+    def add_correction(self, base, label: any):
+        self.corrections[label] = PauliOperator(base)
 
-    def unlink(self, node):
-        self.neighbours.remove(node)
-        node.neighbours.remove(self)
+    def merge_z(self):
+        for correction in self.corrections.values():
+            correction.rotate_z()
+        self.base.rotate_z()
 
-    def local_complement(self):
-        for node in self.neighbours:
-            for other in self.neighbours:
-                if other in node.neighbours:
-                    node.neighbours.remove(other)
-                elif node is not other:
-                    node.neighbours.add(other)
+    def merge_sqrt_x(self, direction):
+        for correction in self.corrections.values():
+            correction.rotate_sqrt_x(direction)
+        self.base.rotate_sqrt_x(direction)
 
-    def disconnect(self):
-        for node in self.neighbours:
-            node.neighbours.remove(self)
-        self.neighbours = set()
+    def merge_sqrt_z(self, direction):
+        for correction in self.corrections.values():
+            correction.rotate_sqrt_z(direction)
+        self.base.rotate_sqrt_z(direction)
 
-    def is_pauli(self):
-        return self.meas.is_pauli()
+    def merge_sqrt_y(self, direction):
+        for correction in self.corrections.values():
+            correction.rotate_sqrt_y(direction)
+        self.base.rotate_sqrt_y(direction)
 
-    def measure(self):
-        base, direction = self.meas.to_pauli()
-        if base == "x":
-            self.x_measure(direction)
-        elif base == "y":
-            self.y_measure(direction)
-        elif base == "z":
-            self.z_measure(direction)
-        else:
-            pass
+    def __repr__(self):
+        retval = "M({})".format(self.base.__repr__())
+        for label, correction in self.corrections.items():
+            retval += "{}({})".format(correction.__repr__(), label)
+        return retval
 
-    def x_measure(self, direction):
-        b = self.neighbours.pop()
-        self.neighbours.add(b)
-        b.meas.rotate_sqrt_y(-direction)
-        if direction == 1:
-            for node in self.neighbours.difference(b.neighbours).difference({b}):
-                node.meas.rotate_z()
-        else:
-            for node in b.neighbours.difference(self.neighbours).difference({self}):
-                node.meas.rotate_z()
-        b.local_complement()
-        self.local_complement()
-        self.disconnect()
-        b.local_complement()
-        pass
-
-    def y_measure(self, direction):
-        for node in self.neighbours:
-            node.meas.rotate_sqrt_z(direction)
-        self.local_complement()
-        self.disconnect()
-
-    def z_measure(self, direction):
-        if direction == -1:
-            for node in self.neighbours:
-                node.meas.rotate_z()
-        self.disconnect()
+    # def link(self, node):
+    #     self.neighbours.add(node)
+    #     node.neighbours.add(self)
+    #
+    # def unlink(self, node):
+    #     self.neighbours.remove(node)
+    #     node.neighbours.remove(self)
+    #
+    # def local_complement(self):
+    #     for node in self.neighbours:
+    #         for other in self.neighbours:
+    #             if other in node.neighbours:
+    #                 # node.neighbours.remove(other)
+    #                 node.unlink(other)
+    #             elif node is not other:
+    #                 # node.neighbours.add(other)
+    #                 other.unlink(node)
+    #
+    # def disconnect(self):
+    #     for node in self.neighbours:
+    #         node.neighbours.remove(self)
+    #     self.neighbours = set()
+    #
+    # def is_pauli(self):
+    #     return self.base.is_pauli()
+    #
+    # def measure(self):
+    #     base, direction = self.base.to_pauli()
+    #     if base == "x":
+    #         self.x_measure(direction)
+    #     elif base == "y":
+    #         self.y_measure(direction)
+    #     elif base == "z":
+    #         self.z_measure(direction)
+    #     else:
+    #         pass
+    #
+    # def x_measure(self, direction):
+    #     b = self.neighbours.pop()
+    #     self.neighbours.add(b)
+    #     b.meas.rotate_sqrt_y(-direction)
+    #     if direction == 1:
+    #         for node in self.neighbours.difference(b.neighbours).difference({b}):
+    #             node.meas.rotate_z()
+    #     else:
+    #         for node in b.neighbours.difference(self.neighbours).difference({self}):
+    #             node.meas.rotate_z()
+    #     b.local_complement()
+    #     self.local_complement()
+    #     self.disconnect()
+    #     b.local_complement()
+    #     pass
+    #
+    # def y_measure(self, direction):
+    #     for node in self.neighbours:
+    #         node.meas.rotate_sqrt_z(direction)
+    #     self.local_complement()
+    #     self.disconnect()
+    #
+    # def z_measure(self, direction):
+    #     if direction == -1:
+    #         for node in self.neighbours:
+    #             node.meas.rotate_z()
+    #     self.disconnect()
 
     # def complement(self, other):
     #     """

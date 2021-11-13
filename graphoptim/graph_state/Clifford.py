@@ -16,3 +16,15 @@
 #     XY = 'xy'
 #     YZ = 'yz'
 #     XZ = 'xz'
+
+from enum import Enum
+
+
+class Clifford(Enum):
+    I = 0
+    X = 1
+    Z = 2
+    Y = 3
+    SQRT_X = 4
+    SQRT_Z = 5
+    SQRT_Y = 6

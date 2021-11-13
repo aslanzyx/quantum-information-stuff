@@ -1,0 +1,16 @@
+graph {
+	"input 0"
+	"input 0" -- t0
+	"input 1"
+	"input 1" -- t1
+	"output 0"
+	"output 0" -- t0
+	"output 1"
+	"output 1" -- t1
+	t0
+	t0 -- "input 0"
+	t0 -- "output 0"
+	t1
+	t1 -- "input 1"
+	t1 -- "output 1"
+}
