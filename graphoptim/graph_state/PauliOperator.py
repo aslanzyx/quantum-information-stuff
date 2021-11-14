@@ -1,4 +1,4 @@
-from graphoptim.graph_state import BlochSphere
+from .BlochSphere import BlochSphere
 
 
 class PauliOperator(BlochSphere):

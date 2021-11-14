@@ -1,4 +1,4 @@
-from PauliOperator import BlochSphere
+from .BlochSphere import BlochSphere
 
 
 class MeasurementBase(BlochSphere):
@@ -7,6 +7,8 @@ class MeasurementBase(BlochSphere):
         base = base.lower()
         if base == 'x':
             super(MeasurementBase, self).__init__([1, 0, 0])
+        elif base == '-x':
+            super(MeasurementBase, self).__init__([-1, 0, 0])
         elif base == 'y':
             super(MeasurementBase, self).__init__([0, 1, 0])
         elif base == 'z':

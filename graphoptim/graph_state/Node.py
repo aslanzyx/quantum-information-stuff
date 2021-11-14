@@ -1,6 +1,7 @@
-from typing import Set, Dict
+from typing import Dict
 
-from graphoptim.graph_state import MeasurementBase, PauliOperator
+from graphoptim.graph_state import MeasurementBase
+from .PauliOperator import PauliOperator
 
 
 class Node:
@@ -35,7 +36,7 @@ class Node:
         self.base.rotate_sqrt_y(direction)
 
     def __repr__(self):
-        retval = "M({})".format(self.base.__repr__())
+        retval = "{}:M({})".format(self.label, self.base.__repr__())
         for label, correction in self.corrections.items():
             retval += "{}({})".format(correction.__repr__(), label)
         return retval

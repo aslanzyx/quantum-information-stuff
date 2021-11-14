@@ -34,6 +34,7 @@ class GraphState:
         neighbours = self.edges.pop(label)
         for neighbour in neighbours:
             self.edges[neighbour].remove(label)
+        self.nodes.pop(label)
 
     def add_edge(self, label_u: any, label_v: any):
         self.edges[label_u].add(label_v)
@@ -92,7 +93,7 @@ class GraphState:
             self.z_measurement(label, direction)
 
     def eliminate_pauli(self):
-        for label, node in self.nodes.items():
+        for label, node in list(self.nodes.items()):
             if label not in self.input and label not in self.output and node.base.is_pauli():
                 self.measure(label)
 
@@ -105,34 +106,73 @@ class GraphState:
                 edges[prev].add(curr)
         return edges
 
-    def extract_temporal_order(self):
-        edges = self.extract_dag()
+    def extract_topological_order(self) -> List[any]:
         order = []
-        visited = set()
         todo = set(self.nodes.keys())
-        node = todo.pop()
-        stack = []
-        for next in edges[node]:
-            if next not in edges and next not in visited:
-                pass
-        return order.reverse()
+        while len(todo) > 0:
+            stack = [todo.pop()]
+            while len(stack) > 0:
+                curr = stack[-1]
+                flag = True
+                for prev in self.nodes[curr].corrections.keys():
+                    if prev in todo:
+                        stack.append(prev)
+                        flag = False
+                        todo.remove(prev)
+                if flag:
+                    order.append(stack.pop())
+        return order
 
-    def extact_parallel_measurements(self):
-        pass
+    def render_temporal_order(self):
+        g = graphviz.Digraph()
+        with g.subgraph(name='cluster_0') as c:
+            c.attr("node", shape="box")
+            for label in self.input:
+                c.node(str(label), label=self.nodes[label].__repr__())
+            c.attr(label='input')
+        with g.subgraph(name='cluster_1') as c:
+            c.attr("node", shape="box")
+            for label in self.output:
+                c.node(str(label), label=self.nodes[label].__repr__())
+            c.attr(label='output')
 
-    def dfs(self, edges: Dict, node: any, func):
-        if node:
-            for next in edges[node]:
-                self.dfs(edges, next, func)
-                func(next)
+        with g.subgraph(name='cluster_2') as c:
+            c.attr("node", shape="box")
+            for label, node in self.nodes.items():
+                if label not in self.input and label not in self.output:
+                    c.node(str(label), label=node.__repr__())
+            c.attr(label='intermediate')
+        for label, node in self.nodes.items():
+            for source, operator in node.corrections.items():
+                g.edge(str(source), str(label))
+        g.view()
 
-    def render(self, filename="demo", **config):
+    def render(self, **config):
         visited_edge: Set[(any, any)] = set()
         g = graphviz.Graph()
+
+        with g.subgraph(name='cluster_0') as c:
+            c.attr("node", shape="box")
+            for label in self.input:
+                c.node(str(label), label=self.nodes[label].__repr__())
+            c.attr(label='input')
+
+        with g.subgraph(name='cluster_1') as c:
+            c.attr("node", shape="box")
+            for label in self.output:
+                c.node(str(label), label=self.nodes[label].__repr__())
+            c.attr(label='output')
+
+        with g.subgraph(name='cluster_2') as c:
+            c.attr("node", shape="box")
+            for label, node in self.nodes.items():
+                if label not in self.input and label not in self.output:
+                    c.node(str(label), label=node.__repr__())
+            c.attr(label='intermediate')
+
         for label, node in self.nodes.items():
-            g.node(label, label=node.__repr__())
             for other_label in self.edges[label]:
                 if (other_label, label) not in visited_edge:
-                    g.edge(label, other_label)
+                    g.edge(str(label), str(other_label))
                     visited_edge.add((label, other_label))
-        g.render(filename, view=True)
+        g.view()

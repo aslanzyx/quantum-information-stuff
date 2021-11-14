@@ -40,7 +40,7 @@ class BlochSphere:
         self.vector[1], self.vector[2] = direction * self.vector[2], -direction * self.vector[1]
 
     def rotate_sqrt_y(self, direction):
-        self.vector[0], self.vector[2] = direction * self.vector[2], -direction * self.vector[0]
+        self.vector[2], self.vector[0] = direction * self.vector[0], -direction * self.vector[2]
 
     def rotate_sqrt_z(self, direction):
         self.vector[0], self.vector[1] = direction * self.vector[1], -direction * self.vector[0]
