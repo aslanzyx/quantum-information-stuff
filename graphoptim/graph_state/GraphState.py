@@ -1,4 +1,7 @@
 from typing import List, Set, Dict
+
+import numpy as np
+
 from graphoptim.graph_state import Node
 import graphviz
 
@@ -35,6 +38,10 @@ class GraphState:
         for neighbour in neighbours:
             self.edges[neighbour].remove(label)
         self.nodes.pop(label)
+        if label in self.input:
+            self.input.remove(label)
+        if label in self.output:
+            self.output.remove(label)
 
     def add_edge(self, label_u: any, label_v: any):
         self.edges[label_u].add(label_v)
@@ -94,7 +101,7 @@ class GraphState:
 
     def eliminate_pauli(self):
         for label, node in list(self.nodes.items()):
-            if label not in self.input and label not in self.output and node.base.is_pauli():
+            if len(node.corrections.keys()) == 0 and node.base.is_pauli():
                 self.measure(label)
 
     def extract_dag(self) -> Dict[any, Set[any]]:
@@ -105,6 +112,79 @@ class GraphState:
                     edges[prev] = set()
                 edges[prev].add(curr)
         return edges
+
+    def partition(self):
+        todo = set(self.nodes.keys())
+        partition = dict()
+        while len(todo) > 0:
+            for label in list(todo):
+                # if len(self.nodes[label].corrections.keys()) == 0:
+                #     partition[label] = 0
+                #     todo.remove(label)
+                flag = True
+                set_id = 0
+                for source in self.nodes[label].corrections.keys():
+                    if source not in partition:
+                        flag = False
+                        break
+                    set_id = max(partition[source] + 1, set_id)
+                if flag:
+                    partition[label] = set_id
+                    todo.remove(label)
+        return partition
+
+    def render_partition(self):
+        p = self.partition().items()
+        # g = graphviz.Digraph()
+        g = graphviz.Graph()
+        i = 0
+        todo = set(self.nodes.keys())
+        g.attr("node", shape="box")
+        while len(todo) > 0:
+            # name = f'cluster_{i}'
+            with g.subgraph() as c:
+                c.attr(rank=f'same')
+                for label, part in p:
+                    if part == i:
+                        c.node(str(label), label=self.nodes[label].__repr__())
+                        todo.remove(label)
+                c.attr(label=f'cluster #{i}')
+            i += 1
+        visited_edges = set()
+        for label, nexts in self.edges.items():
+            for next_label in nexts:
+                if (next_label, label) not in visited_edges:
+                    g.edge(str(label), str(next_label))
+                    visited_edges.add((label, next_label))
+        # for label, node in self.nodes.items():
+        #     for source in node.corrections.keys():
+        #         g.edge(str(source), str(label))
+        g.view()
+
+    def minimize_edge(self, max_out=100):
+        counter = 0
+        flag = True
+        min_label = None
+        min_num = self.count_edge_num()
+        while counter < max_out and flag:
+            flag = False
+            for label in self.nodes.keys():
+                self.local_complement(label, 1)
+                num = self.count_edge_num()
+                if min_num is None or num < min_num:
+                    min_num = num
+                    min_label = label
+                    flag = True
+                self.local_complement(label, 1)
+            if flag:
+                self.local_complement(min_label, 1)
+            counter += 1
+
+    def count_edge_num(self):
+        num = 0
+        for links in self.edges.values():
+            num += len(links)
+        return num
 
     def extract_topological_order(self) -> List[any]:
         order = []
@@ -151,19 +231,21 @@ class GraphState:
         visited_edge: Set[(any, any)] = set()
         g = graphviz.Graph()
 
-        with g.subgraph(name='cluster_0') as c:
+        with g.subgraph() as c:
             c.attr("node", shape="box")
+            c.attr(rank="same")
             for label in self.input:
                 c.node(str(label), label=self.nodes[label].__repr__())
             c.attr(label='input')
 
-        with g.subgraph(name='cluster_1') as c:
+        with g.subgraph() as c:
             c.attr("node", shape="box")
+            c.attr(rank="same")
             for label in self.output:
                 c.node(str(label), label=self.nodes[label].__repr__())
             c.attr(label='output')
 
-        with g.subgraph(name='cluster_2') as c:
+        with g.subgraph() as c:
             c.attr("node", shape="box")
             for label, node in self.nodes.items():
                 if label not in self.input and label not in self.output:

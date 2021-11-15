@@ -38,7 +38,7 @@ class Node:
     def __repr__(self):
         retval = "{}:M({})".format(self.label, self.base.__repr__())
         for label, correction in self.corrections.items():
-            retval += "{}({})".format(correction.__repr__(), label)
+            retval += "{}({})".format(correction.to_base()[0], label)
         return retval
 
     # def link(self, node):

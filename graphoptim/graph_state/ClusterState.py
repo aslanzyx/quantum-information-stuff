@@ -10,8 +10,8 @@ class ClusterState:
         # self.buffer = [(PauliOperator('z'), i, 0) for i in range(size)]
         # self.corrections = dict()
         self.corrections: Dict[(int, int), Set[(PauliOperator, (int, int))]] = dict()
-        self.operator_buffer: List[List[PauliOperator]] = [[PauliOperator('z')] for i in range(size)]
-        self.location_buffer: List[List[(int, int)]] = [[(i, 0)] for i in range(size)]
+        self.operator_buffer: List[List[PauliOperator]] = [[] for i in range(size)]
+        self.location_buffer: List[List[(int, int)]] = [[] for i in range(size)]
 
     def add_x(self, reg):
         self.lines[reg].append('X')
@@ -45,6 +45,8 @@ class ClusterState:
                     self.corrections[(reg, ptr)].add((PauliOperator('X'), self.location_buffer[reg][i]))
             self.operator_buffer[reg].append(PauliOperator('z'))
             self.location_buffer[reg].append((reg, ptr))
+        # print(self.operator_buffer)
+        # print(self.location_buffer)
 
     def add_h(self, reg):
         self.lines[reg].append('X')
@@ -97,6 +99,11 @@ class ClusterState:
                 self.operator_buffer[control].append(PauliOperator('Z'))
                 self.location_buffer[control].append(location)
 
+    def add_cz(self, control, target):
+        self.add_h(target)
+        self.add_cnot(control, target)
+        self.add_h(target)
+
     def truncate_wire(self):
         pass
 
@@ -121,7 +128,8 @@ class ClusterState:
             if location not in self.corrections:
                 self.corrections[location] = set()
             for j in range(len(self.operator_buffer[i])):
-                self.corrections[location].add((self.operator_buffer[i][j], self.location_buffer[i][j]))
+                if self.operator_buffer[i][j].to_base()[0] != 'Z':
+                    self.corrections[location].add((self.operator_buffer[i][j], self.location_buffer[i][j]))
             self.operator_buffer[i] = []
             self.location_buffer[i] = []
 

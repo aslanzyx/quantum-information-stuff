@@ -1,0 +1,30 @@
+graph {
+	node [shape=box]
+	{
+		rank=same
+		98 [label="98:M(YZ, -1/4)"]
+		37 [label="37:M(YZ, -3/4)"]
+		153 [label="153:M(YZ, 3/4)"]
+		label="cluster #0"
+	}
+	{
+		rank=same
+		124 [label="124:M(YZ, 1/4)Y(98)Y(37)"]
+		126 [label="126:M(Z)Y(98)Y(37)"]
+		63 [label="63:M(ZX, -3/4)X(37)"]
+		173 [label="173:M(Y)Z(153)Z(37)Z(98)"]
+		label="cluster #1"
+	}
+	{
+		rank=same
+		32 [label="32:M(-Y)Z(37)Z(63)Z(98)"]
+		83 [label="83:M(Z)Y(98)Y(63)Y(37)"]
+		label="cluster #2"
+	}
+	32 -- 83
+	63 -- 83
+	83 -- 173
+	98 -- 173
+	124 -- 126
+	153 -- 173
+}
