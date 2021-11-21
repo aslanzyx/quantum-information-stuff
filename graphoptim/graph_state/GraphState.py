@@ -62,20 +62,23 @@ class GraphState:
                 self.nodes[node].merge_sqrt_z(rotate)
 
     def x_measurement(self, label: any, direction: int, b: any = None):
-        if b is None:
-            b = self.edges[label].pop()
-            self.edges[label].add(b)
-        self.nodes[b].merge_sqrt_y(-direction)
-        if direction == 1:
-            for node in self.edges[label].difference(self.edges[b]).difference({b}):
-                self.nodes[node].merge_z()
+        if len(self.edges[label]) > 0:
+            if b is None:
+                b = self.edges[label].pop()
+                self.edges[label].add(b)
+            self.nodes[b].merge_sqrt_y(-direction)
+            if direction == 1:
+                for node in self.edges[label].difference(self.edges[b]).difference({b}):
+                    self.nodes[node].merge_z()
+            else:
+                for node in self.edges[b].difference(self.edges[label]).difference({label}):
+                    self.nodes[node].merge_z()
+            self.local_complement(b)
+            self.local_complement(label)
+            self.remove_node(label)
+            self.local_complement(b)
         else:
-            for node in self.edges[b].difference(self.edges[label]).difference({label}):
-                self.nodes[node].merge_z()
-        self.local_complement(b)
-        self.local_complement(label)
-        self.remove_node(label)
-        self.local_complement(b)
+            self.remove_node(label)
 
     def y_measurement(self, label: int, direction: int) -> None:
         for node in self.edges[label]:
@@ -136,7 +139,7 @@ class GraphState:
     def render_partition(self):
         p = self.partition().items()
         # g = graphviz.Digraph()
-        g = graphviz.Graph()
+        g = graphviz.Graph(format="png")
         i = 0
         todo = set(self.nodes.keys())
         g.attr("node", shape="box")
@@ -159,7 +162,7 @@ class GraphState:
         # for label, node in self.nodes.items():
         #     for source in node.corrections.keys():
         #         g.edge(str(source), str(label))
-        g.view()
+        g.view(filename="demo_circ", directory="./../cache", cleanup=True)
 
     def minimize_edge(self, max_out=100):
         counter = 0
@@ -229,7 +232,7 @@ class GraphState:
 
     def render(self, **config):
         visited_edge: Set[(any, any)] = set()
-        g = graphviz.Graph()
+        g = graphviz.Graph(format='png')
 
         with g.subgraph() as c:
             c.attr("node", shape="box")
@@ -257,4 +260,4 @@ class GraphState:
                 if (other_label, label) not in visited_edge:
                     g.edge(str(label), str(other_label))
                     visited_edge.add((label, other_label))
-        g.view()
+        g.view(filename="demo_circ", directory="./../cache")
