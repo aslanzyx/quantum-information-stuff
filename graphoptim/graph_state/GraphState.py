@@ -4,6 +4,8 @@ import numpy as np
 
 from graphoptim.graph_state import Node
 import graphviz
+import networkx as nx
+import matplotlib.pyplot as plt
 
 
 class GraphState:
@@ -228,36 +230,55 @@ class GraphState:
         for label, node in self.nodes.items():
             for source, operator in node.corrections.items():
                 g.edge(str(source), str(label))
-        g.view()
+        # g.view()
+        g = nx.DiGraph()
+        for label, node in self.nodes.items():
+            for source in node.corrections.keys():
+                g.add_edge(source, label)
+        # nx.draw_circular(g, node_color='k', node_size=100,
+        #                  connectionstyle='arc3, rad = 0.1')
+        # plt.show()
+        return g
 
     def render(self, **config):
-        visited_edge: Set[(any, any)] = set()
-        g = graphviz.Graph(format='png')
+        # visited_edge: Set[(any, any)] = set()
+        # g = graphviz.Graph(format='png')
 
-        with g.subgraph() as c:
-            c.attr("node", shape="box")
-            c.attr(rank="same")
-            for label in self.input:
-                c.node(str(label), label=self.nodes[label].__repr__())
-            c.attr(label='input')
+        # with g.subgraph() as c:
+        #     c.attr("node", shape="box")
+        #     c.attr(rank="same")
+        #     for label in self.input:
+        #         c.node(str(label), label=self.nodes[label].__repr__())
+        #     c.attr(label='input')
 
-        with g.subgraph() as c:
-            c.attr("node", shape="box")
-            c.attr(rank="same")
-            for label in self.output:
-                c.node(str(label), label=self.nodes[label].__repr__())
-            c.attr(label='output')
+        # with g.subgraph() as c:
+        #     c.attr("node", shape="box")
+        #     c.attr(rank="same")
+        #     for label in self.output:
+        #         c.node(str(label), label=self.nodes[label].__repr__())
+        #     c.attr(label='output')
 
-        with g.subgraph() as c:
-            c.attr("node", shape="box")
-            for label, node in self.nodes.items():
-                if label not in self.input and label not in self.output:
-                    c.node(str(label), label=node.__repr__())
-            c.attr(label='intermediate')
+        # with g.subgraph() as c:
+        #     c.attr("node", shape="box")
+        #     for label, node in self.nodes.items():
+        #         if label not in self.input and label not in self.output:
+        #             c.node(str(label), label=node.__repr__())
+        #     c.attr(label='intermediate')
 
-        for label, node in self.nodes.items():
+        # for label, node in self.nodes.items():
+        #     for other_label in self.edges[label]:
+        #         if (other_label, label) not in visited_edge:
+        #             g.edge(str(label), str(other_label))
+        #             visited_edge.add((label, other_label))
+        # g.view(filename="demo_circ", directory="./../cache")
+
+        g = nx.Graph()
+        labels = dict()
+        for label in self.edges.keys():
+            labels[label] = self.nodes[label].__repr__()
+            g.add_node(label)
             for other_label in self.edges[label]:
-                if (other_label, label) not in visited_edge:
-                    g.edge(str(label), str(other_label))
-                    visited_edge.add((label, other_label))
-        g.view(filename="demo_circ", directory="./../cache")
+                g.add_edge(label, other_label)
+        # nx.draw(g, node_color='k', node_size=100, pos=nx.circular_layout(g))
+        # plt.show()
+        return g

@@ -1,17 +1,73 @@
-from typing import List, Set, Dict
+from typing import List, Set, Dict, Sized
+from graphviz.dot import node
+
+from networkx.algorithms import operators
 from graphoptim.graph_state import GraphState, PauliOperator, Node
+import networkx as nx
+import matplotlib.pyplot as plt
 
 
 class ClusterState:
     def __init__(self, size):
         self.lines: List[List[str]] = [[] for line in range(size)]
-        # self.entanglement: Dict[(int, int), (int, int)] = dict()
         self.entanglement: Set[(int, int, int, int)] = set()
-        # self.buffer = [(PauliOperator('z'), i, 0) for i in range(size)]
-        # self.corrections = dict()
-        self.corrections: Dict[(int, int), Set[(PauliOperator, (int, int))]] = dict()
-        self.operator_buffer: List[List[PauliOperator]] = [[] for i in range(size)]
-        self.location_buffer: List[List[(int, int)]] = [[] for i in range(size)]
+        self.corrections: Dict[(int, int), Set[(
+            PauliOperator, (int, int))]] = dict()
+        self.operator_buffer: List[List[PauliOperator]] = [
+            [] for i in range(size)]
+        self.location_buffer: List[List[(int, int)]] = [
+            [] for i in range(size)]
+        self.location_to_operator: Dict = dict()
+        self.stack_ptrs: List = [0]*size
+        self.nonlocal_edge: Dict = dict()
+        self.size = size
+
+    def add_rotation_sequence(self, line: int, bases: List[str]) -> None:
+        ptr = self.stack_ptrs[line]
+        for base in bases:
+            self.location_to_operator[(line, ptr)] = base
+            ptr += 1
+        self.stack_ptrs[line] = ptr
+
+    def add_entanglement(self, target: int, control: int):
+        # Align the stack pointers
+        target_ptr = self.stack_ptrs[target]
+        control_ptr = self.stack_ptrs[control]
+        ptr = max(target_ptr, control_ptr)
+        self.stack_ptrs[target] = ptr
+        self.stack_ptrs[control] = ptr
+        # Record entanglement
+        self.nonlocal_edge[(target, ptr+3)] = control
+        self.nonlocal_edge[(control, ptr+3)] = target
+        # Add rotations
+        self.add_rotation_sequence(
+            target, ['-x', 'y', 'y', 'x', 'y', 'y'])
+        self.add_rotation_sequence(
+            control, ['x', 'x', 'x', 'x', 'x', 'x'])
+
+    def to_graph(self):
+        g = nx.Graph()
+        pos = dict()
+        labels = dict()
+        line_nodes = [set() for i in range(self.size)]
+        for location, operator in self.location_to_operator.items():
+            labels[location] = operator
+            line, ptr = location
+            pos[location] = (ptr, line)
+            line_nodes[line].add(ptr)
+        for line in range(self.size):
+            nodes = list(line_nodes[line])
+            nodes.sort()
+            for i in range(0, len(nodes)-1):
+                g.add_edge((line, nodes[i]), (line, nodes[i+1]))
+        for k, control in self.nonlocal_edge.items():
+            target, ptr = k
+            g.add_edge((control, ptr), (target, ptr), length=2)
+
+        nx.draw(g, pos=pos, labels=labels, node_size=200, width=2,
+                node_color='lightgrey', node_shape='o')
+        plt.show()
+        return g
 
     def add_x(self, reg):
         self.lines[reg].append('X')
@@ -37,25 +93,20 @@ class ClusterState:
         ptr = len(self.lines[reg])
         self.lines[reg].append('T')
         self.lines[reg].append('X')
-        # self.corrections[(reg, len(self.lines[reg]))] = self.buffer[reg]
         if ptr > 0:
             self.corrections[(reg, ptr)] = set()
             for i in range(len(self.operator_buffer[reg])):
                 if self.operator_buffer[reg][i].to_base()[0] != 'Z':
-                    self.corrections[(reg, ptr)].add((PauliOperator('X'), self.location_buffer[reg][i]))
+                    self.corrections[(reg, ptr)].add(
+                        (PauliOperator('X'), self.location_buffer[reg][i]))
             self.operator_buffer[reg].append(PauliOperator('z'))
             self.location_buffer[reg].append((reg, ptr))
-        # print(self.operator_buffer)
-        # print(self.location_buffer)
 
     def add_h(self, reg):
         self.lines[reg].append('X')
         self.lines[reg].append('Y')
         self.lines[reg].append('Y')
         self.lines[reg].append('Y')
-        # self.buffer[reg].rotate_sqrt_x(1)
-        # self.buffer[reg].rotate_sqrt_z(1)
-        # self.buffer[reg].rotate_sqrt_x(1)
         for i in range(len(self.operator_buffer[reg])):
             self.operator_buffer[reg][i].rotate_sqrt_x(1)
             self.operator_buffer[reg][i].rotate_sqrt_z(1)
@@ -64,23 +115,18 @@ class ClusterState:
     def add_s(self, reg):
         self.lines[reg].append('Y')
         self.lines[reg].append('X')
-        # self.buffer[reg].rotate_sqrt_z(1)
         for i in range(len(self.operator_buffer[reg])):
             self.operator_buffer[reg][i].rotate_sqrt_z(1)
 
     def add_cnot(self, control, target):
         self.lines[control] += ['-X', 'Y', 'Y', 'X', 'Y', 'Y']
         self.lines[target] += ['X', 'X', 'X', 'X', 'X', 'X']
-        self.entanglement.add((control, len(self.lines[control]) - 3, target, len(self.lines[target]) - 3))
-        # self.entanglement[(control, len(self.lines[control]) - 3)] = (target, len(self.lines[target]) - 3)
-        # self.entanglement[(target, len(self.lines[target]) - 3)] = (control, len(self.lines[control]) - 3)
-        # if self.buffer[target].to_base() == 'x':
-        #     self.buffer[control] =
-        # self.buffer[control].rotate_z()
-
+        self.entanglement.add(
+            (control, len(self.lines[control]) - 3, target, len(self.lines[target]) - 3))
         # Obtain control & target corrections
         control_corrections: List[(PauliOperator, (int, int))] = [
-            (self.operator_buffer[control][i], self.location_buffer[control][i])
+            (self.operator_buffer[control][i],
+             self.location_buffer[control][i])
             for i in range(len(self.operator_buffer[control]))
         ]
         target_corrections: List[(PauliOperator, (int, int))] = [
@@ -129,7 +175,8 @@ class ClusterState:
                 self.corrections[location] = set()
             for j in range(len(self.operator_buffer[i])):
                 if self.operator_buffer[i][j].to_base()[0] != 'Z':
-                    self.corrections[location].add((self.operator_buffer[i][j], self.location_buffer[i][j]))
+                    self.corrections[location].add(
+                        (self.operator_buffer[i][j], self.location_buffer[i][j]))
             self.operator_buffer[i] = []
             self.location_buffer[i] = []
 
