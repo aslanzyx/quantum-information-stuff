@@ -1,22 +1,35 @@
 from .BlochSphere import BlochSphere
+from math import cos, sin, pi
 
 
 class MeasurementBase(BlochSphere):
 
     def __init__(self, base):
-        base = base.lower()
-        if base == 'x':
-            super(MeasurementBase, self).__init__([1, 0, 0])
-        elif base == '-x':
-            super(MeasurementBase, self).__init__([-1, 0, 0])
-        elif base == 'y':
-            super(MeasurementBase, self).__init__([0, 1, 0])
-        elif base == 'z':
-            super(MeasurementBase, self).__init__([0, 0, 1])
-        elif base == 't':
+        #  super(MeasurementBase, self).__init__([0, cos(base), sin(base)])
+        if base == pi/4:
             super(MeasurementBase, self).__init__([1, 1, 0])
+        elif base == 0:
+            super(MeasurementBase, self).__init__([1, 0, 0])
+        elif base == pi/2:
+            super(MeasurementBase, self).__init__([0, 1, 0])
+        elif base == pi:
+            super(MeasurementBase, self).__init__([-1, 0, 0])
         else:
-            print("Not available")
+            super(MeasurementBase, self).__init__([0, 0, 1])
+
+        #  base = base.lower()
+        #  if base == 'x':
+        #  super(MeasurementBase, self).__init__([1, 0, 0])
+        #  elif base == '-x':
+        #  super(MeasurementBase, self).__init__([-1, 0, 0])
+        #  elif base == 'y':
+        #  super(MeasurementBase, self).__init__([0, 1, 0])
+        #  elif base == 'z':
+        #  super(MeasurementBase, self).__init__([0, 0, 1])
+        #  elif base == 't':
+        #  super(MeasurementBase, self).__init__([1, 1, 0])
+        #  else:
+        #  print("Not available")
 
     def is_pauli(self) -> bool:
         return sum([abs(i) for i in self.vector]) == 1
@@ -32,31 +45,31 @@ class MeasurementBase(BlochSphere):
             return None
 
     def __repr__(self):
-        if self.vector == [1, 1, 0]:
-            return "XY, 1/4"
-        elif self.vector == [-1, 1, 0]:
-            return "XY, 3/4"
-        elif self.vector == [1, -1, 0]:
-            return "XY, -1/4"
-        elif self.vector == [-1, -1, 0]:
-            return "XY, -3/4"
-        elif self.vector == [0, 1, 1]:
-            return "YZ, 1/4"
-        elif self.vector == [0, -1, 1]:
-            return "YZ, 3/4"
-        elif self.vector == [0, 1, -1]:
-            return "YZ, -1/4"
-        elif self.vector == [0, -1, -1]:
-            return "YZ, -3/4"
-        elif self.vector == [1, 0, 1]:
-            return "ZX, 1/4"
-        elif self.vector == [1, 0, -1]:
-            return "ZX, 3/4"
-        elif self.vector == [-1, 0, 1]:
-            return "ZX, -1/4"
-        elif self.vector == [-1, 0, -1]:
-            return "ZX, -3/4"
-        elif self.vector == [1, 0, 0]:
+        #  if self.vector == [1, 1, 0]:
+        #  return "XY, 1/4"
+        #  elif self.vector == [-1, 1, 0]:
+        #  return "XY, 3/4"
+        #  elif self.vector == [1, -1, 0]:
+        #  return "XY, -1/4"
+        #  elif self.vector == [-1, -1, 0]:
+        #  return "XY, -3/4"
+        #  elif self.vector == [0, 1, 1]:
+        #  return "YZ, 1/4"
+        #  elif self.vector == [0, -1, 1]:
+        #  return "YZ, 3/4"
+        #  elif self.vector == [0, 1, -1]:
+        #  return "YZ, -1/4"
+        #  elif self.vector == [0, -1, -1]:
+        #  return "YZ, -3/4"
+        #  elif self.vector == [1, 0, 1]:
+        #  return "ZX, 1/4"
+        #  elif self.vector == [1, 0, -1]:
+        #  return "ZX, 3/4"
+        #  elif self.vector == [-1, 0, 1]:
+        #  return "ZX, -1/4"
+        #  elif self.vector == [-1, 0, -1]:
+        #  return "ZX, -3/4"
+        if self.vector == [1, 0, 0]:
             return 'X'
         elif self.vector == [-1, 0, 0]:
             return '-X'
@@ -68,6 +81,8 @@ class MeasurementBase(BlochSphere):
             return 'Z'
         elif self.vector == [0, 0, -1]:
             return '-Z'
+        else:
+            return 'T'
 
     # def rotate_sqrt_x(self, direction):
     #     self.vector[1], self.vector[2] = \

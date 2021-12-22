@@ -36,10 +36,12 @@ class Node:
         self.base.rotate_sqrt_y(direction)
 
     def __repr__(self):
-        retval = "{}:M({})".format(self.label, self.base.__repr__())
-        for label, correction in self.corrections.items():
-            retval += "{}({})".format(correction.to_base()[0], label)
-        return retval
+        #  retval = "{}:M({})".format(self.label, self.base.__repr__())
+        #  for label, correction in self.corrections.items():
+        #  retval += "{}({})".format(correction.to_base()[0], label)
+        #  return retval
+        #  return self.base.__repr__()
+        return "{},{}".format(self.label[0], self.label[1])
 
     # def link(self, node):
     #     self.neighbours.add(node)

@@ -3,99 +3,79 @@ from typing import List, Set, Dict
 import numpy as np
 
 from graphoptim.graph_state import Node
-import graphviz
 import networkx as nx
 import matplotlib.pyplot as plt
 
 
 class GraphState:
-    def __init__(self):
-        self.nodes: Dict[any, Node] = dict()
-        self.edges: Dict[any, Set[any]] = dict()
-        self.input: List[any] = []
-        self.output: Set[any] = set()
-        self.size = 0
+    def __init__(self, G, dag, pos, bases):
+        self.G: nx.Graph = G
+        self.dag: nx.DiGraph = dag
+        self.pos: Dict[any, (int, int)] = pos
+        self.bases: Dict[any, Node] = bases
 
-    def set_input(self, label):
-        self.input.append(label)
-
-    def is_input(self, label):
-        return label in self.input
-
-    def set_output(self, label):
-        self.output.add(label)
-
-    def is_output(self, label):
-        return label in self.output
-
-    def get_node(self, label):
-        return self.nodes[label]
-
-    def add_node(self, node: Node):
-        self.nodes[node.label] = node
-        self.edges[node.label] = set()
-
-    def remove_node(self, label: any) -> None:
-        neighbours = self.edges.pop(label)
-        for neighbour in neighbours:
-            self.edges[neighbour].remove(label)
-        self.nodes.pop(label)
-        if label in self.input:
-            self.input.remove(label)
-        if label in self.output:
-            self.output.remove(label)
-
-    def add_edge(self, label_u: any, label_v: any):
-        self.edges[label_u].add(label_v)
-        self.edges[label_v].add(label_u)
-
-    def local_complement(self, label: any, rotate: int = 0):
-        neighbours = self.edges[label]
-        for neighbour in neighbours:
-            for other_neighbour in neighbours:
-                if neighbour != other_neighbour:
-                    if other_neighbour in self.edges[neighbour]:
-                        self.edges[neighbour].remove(other_neighbour)
-                    else:
-                        self.edges[neighbour].add(other_neighbour)
-        if rotate != 0:
-            self.nodes[label].merge_sqrt_x(rotate)
-            for node in neighbours:
-                self.nodes[node].merge_sqrt_z(rotate)
+    def local_complement(self, label: any, direction: int):
+        """
+        Perform loca complementation
+        """
+        # Update Geometry
+        neighbours = list(self.G.neighbors(label))
+        edges = self.G.edges()
+        for i in range(len(neighbours)):
+            ni = neighbours[i]
+            for j in range(i+1, len(neighbours)):
+                nj = neighbours[j]
+                if (ni, nj) in edges or (nj, ni) in edges:
+                    self.G.remove_edge(ni, nj)
+                else:
+                    self.G.add_edge(ni, nj)
+        # Merge measurement bases
+        self.bases[label].merge_sqrt_x(direction)
+        for ni in neighbours:
+            self.bases[ni].merge_sqrt_z(-direction)
 
     def x_measurement(self, label: any, direction: int, b: any = None):
-        if len(self.edges[label]) > 0:
-            if b is None:
-                b = self.edges[label].pop()
-                self.edges[label].add(b)
-            self.nodes[b].merge_sqrt_y(-direction)
-            if direction == 1:
-                for node in self.edges[label].difference(self.edges[b]).difference({b}):
-                    self.nodes[node].merge_z()
-            else:
-                for node in self.edges[b].difference(self.edges[label]).difference({label}):
-                    self.nodes[node].merge_z()
-            self.local_complement(b)
-            self.local_complement(label)
-            self.remove_node(label)
-            self.local_complement(b)
-        else:
-            self.remove_node(label)
+        """
+        Perform X-based measurment on given node
+        """
+        # select b
+        neighb = list(self.G.neighbors(label))
+        neighb.sort()
+        b = neighb[0]
+        self.local_complement(b, direction)
+        self.y_measurement(label, direction)
 
     def y_measurement(self, label: int, direction: int) -> None:
-        for node in self.edges[label]:
-            self.nodes[node].merge_sqrt_z(direction)
-        self.local_complement(label)
-        self.remove_node(label)
+        """
+        Perform Y-based measurment on given node
+        """
+        self.local_complement(label, -direction)
+        self.z_measurement(label, direction)
 
     def z_measurement(self, label: any, direction: int) -> None:
+        """
+        Perform Z-based measurment on given node
+        """
         if direction == -1:
-            for node in self.edges[label]:
-                self.nodes[node].merge_z()
-        self.remove_node(label)
+            for ni in self.G.neighbors(label):
+                self.bases[ni].merge_z()
+        # Remove the node
+        self.G.remove_node(label)
+        self.bases.pop(label)
+        self.dag.remove_node(label)
+
+    def draw(self):
+        labels = {ni: self.bases[ni].__repr__() for ni in self.G.nodes()}
+        nx.draw(self.G, pos=self.pos, labels=labels,
+                node_color='w', node_size=1e3, edgecolors='k')
+
+    def draw_circular(self):
+        labels = {ni: self.bases[ni].__repr__() for ni in self.G.nodes()}
+        nx.draw_circular(self.G, labels=labels,
+                         node_color='w', node_size=1e3, edgecolors='k')
 
     def measure(self, label: int):
-        base, direction = self.nodes[label].base.to_pauli()
+        base, direction = self.bases[label].base.to_pauli()
         base = base.lower()
         if base == 'x':
             self.x_measurement(label, direction)
@@ -105,9 +85,14 @@ class GraphState:
             self.z_measurement(label, direction)
 
     def eliminate_pauli(self):
-        for label, node in list(self.nodes.items()):
-            if len(node.corrections.keys()) == 0 and node.base.is_pauli():
+        nodes = list(self.bases.items())
+        nodes.sort()
+        #  for label, node in list(self.bases.items()):
+        for label, node in nodes:
+            if node.base.is_pauli():
                 self.measure(label)
+            #  self.draw()
+            #  plt.show()
 
     def extract_dag(self) -> Dict[any, Set[any]]:
         edges: Dict[any, Set[any]] = dict()
