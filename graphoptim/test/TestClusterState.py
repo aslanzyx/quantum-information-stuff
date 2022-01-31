@@ -1,3 +1,23 @@
+from graphoptim.core import ClusterState
+from graphoptim.core import BlochSphere
+import unittest
+from math import pi
+import numpy as np
+
+
+class TestClusterState(unittest.TestCase):
+    def test_wire(self):
+        cluster_state = ClusterState(1)
+        cluster_state.add_rotation_sequence(0, [pi / 2, pi / 2])
+        self.assertEqual([pi / 2, pi / 2], cluster_state.cluster_stacks[0])
+        cluster_state.add_rotation_sequence(0, [pi / 4, 0])
+        self.assertEqual([pi / 2, pi / 2, pi / 4, 0], cluster_state.cluster_stacks[0])
+        np.testing.assert_array_equal(np.array([1, 0, 0]),
+                                      list(cluster_state.corrections[0])[0][0].vector)
+        cluster_state.add_rotation_sequence(0, [pi / 2, pi])
+        print(cluster_state.corrections)
+        print(cluster_state.dependencies)
+
 # # # from MeasurementBase import MeasurementBase
 # # # from Node import Node
 # # from graphoptim.graph_state.Node import Node

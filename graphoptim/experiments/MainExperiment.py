@@ -2,10 +2,36 @@ import matplotlib.pyplot as plt
 import networkx as nx
 from math import pi
 from graphoptim.graph_state import ClusterState, GraphState
+import random
 
 
 def main():
-    test_4()
+    test_disconnect()
+
+
+def test_disconnect():
+    n = 40
+    m = 40
+    c = ClusterState(n)
+    parity = 0
+    for i in range(m):
+        t_id = random.randint(0, n - 1)
+        for j in range(n):
+            if j == t_id:
+                c.t(j)
+            else:
+                c.h(j)
+        if parity:
+            for j in range(1, n - 1, 2):
+                c.cnot(j, j + 1)
+        else:
+            for j in range(0, n - 1, 2):
+                c.cnot(j, j + 1)
+        parity ^= 1
+    g = c.to_graph_state()
+    # g.eliminate_pauli()
+    g.draw()
+    plt.show()
 
 
 def test_1():
@@ -42,10 +68,10 @@ def test_1():
     g.local_complement((16, 0), 1)
 
     # Experimental
-    g.local_complement((80, 0), 1)
-    g.local_complement((74, 0), 1)
-    g.local_complement((80, 0), 1)
-    g.local_complement((74, 0), 1)
+    #  g.local_complement((80, 0), 1)
+    #  g.local_complement((74, 0), 1)
+    #  g.local_complement((80, 0), 1)
+    #  g.local_complement((74, 0), 1)
 
     # g.local_complement((86, 0), 1)
     # g.local_complement((74, 0), 1)

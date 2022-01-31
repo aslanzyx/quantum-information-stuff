@@ -5,7 +5,6 @@ from math import cos, sin, pi
 class MeasurementBase(BlochSphere):
 
     def __init__(self, base):
-        #  super(MeasurementBase, self).__init__([0, cos(base), sin(base)])
         if base == pi/4:
             super(MeasurementBase, self).__init__([1, 1, 0])
         elif base == 0:
@@ -16,20 +15,6 @@ class MeasurementBase(BlochSphere):
             super(MeasurementBase, self).__init__([-1, 0, 0])
         else:
             super(MeasurementBase, self).__init__([0, 0, 1])
-
-        #  base = base.lower()
-        #  if base == 'x':
-        #  super(MeasurementBase, self).__init__([1, 0, 0])
-        #  elif base == '-x':
-        #  super(MeasurementBase, self).__init__([-1, 0, 0])
-        #  elif base == 'y':
-        #  super(MeasurementBase, self).__init__([0, 1, 0])
-        #  elif base == 'z':
-        #  super(MeasurementBase, self).__init__([0, 0, 1])
-        #  elif base == 't':
-        #  super(MeasurementBase, self).__init__([1, 1, 0])
-        #  else:
-        #  print("Not available")
 
     def is_pauli(self) -> bool:
         return sum([abs(i) for i in self.vector]) == 1

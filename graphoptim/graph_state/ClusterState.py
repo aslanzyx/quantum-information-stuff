@@ -1,5 +1,5 @@
 from typing import List, Set, Dict
-from math import pi
+from math import pi, cos, sin
 import networkx as nx
 from . import GraphState, Node
 
@@ -7,92 +7,131 @@ from . import GraphState, Node
 class ClusterState:
     """
     Cluster state
+    Data Struct:
+        array of stacks to store single rotation gates
+        set to store CNOT-edges
     """
 
     def __init__(self, size):
-        # A map between locations to measurement base
-        self._angle_map: Dict[(int, int), float] = dict()
-        # Stack pointer
-        self._stack_ptrs: List = [0]*size
-        # Graph buffer object
-        self._G = nx.Graph()
-        self._correction_reg: List[List[int]] = [set()]*size
-        # Register size
         self.size = size
+        self.cluster_stacks: List[List[float]] = [[]] * size
+        self.stack_ptrs: List[int] = [0] * size
+        self.cnot_edges: Set[((int, int), (int, int))] = set()
+        self.corrections: List[Set[int]] = [set()] * size
 
-    def add_rotation_sequence(self, wire_id: int, angle_arr: List[float]) -> None:
-        """
-        Add a series of single unitary rotations to a space-like wire
-        """
-        # Obtain the top pointer of the stack
-        ptr = self._stack_ptrs[wire_id]
-        # Add each single qubit rotation
-        for angle in angle_arr:
-            self._angle_map[(ptr, wire_id)] = angle
-            self._G.add_edge((ptr, wire_id), (ptr+1, wire_id))
-            ptr += 1
-        # Update the stack pointers
-        self._stack_ptrs[wire_id] = ptr
+    def add_rotation_sequence(self, wire_id: int, angles: List[float]) -> None:
+        for angle in angles:
+            self.cluster_stacks[wire_id].append(angle)
+        self.stack_ptrs[wire_id] += len(angles)
+        # TODO: update corrections
 
-    def cnot(self, target_id: int, control_id: int) -> None:
-        """
-        Apply CNOT gate
-        """
-        # Get the stack pointers
-        target_ptr = self._stack_ptrs[target_id]
-        control_ptr = self._stack_ptrs[control_id]
-        # Add iter-wire edge
-        self._G.add_edge((target_ptr+3, target_id),
-                         (control_ptr+3, control_id))
-        # Add rotations
-        self.add_rotation_sequence(
-            target_id, [pi, pi/2, pi/2, 0, pi/2, pi/2])
-        self.add_rotation_sequence(
-            control_id, [0, 0, 0, 0, 0, 0])
+    @staticmethod
+    def is_pauli(angle: int):
+        return angle % (pi / 4) == 0
 
-    def x(self, wire_id) -> None:
-        self.add_rotation_sequence(wire_id, [0, pi])
+    def cnot(self, control_id: int, target_id: int) -> None:
+        self.cnot_edges.add(
+            ((self.stack_ptrs[control_id] + 1, control_id),
+             (self.stack_ptrs[target_id], target_id))
+        )
 
-    def z(self, wire_id) -> None:
-        self.add_rotation_sequence(wire_id, [pi, 0])
+    def to_graph_state(self):
+        return -1
 
-    def s(self, wire_id) -> None:
-        self.add_rotation_sequence(wire_id, [pi/2, 0])
-
-    def rx(self, wire_id, angle) -> None:
-        self.add_rotation_sequence(wire_id, [0, angle])
-
-    def rz(self, wire_id, angle) -> None:
-        self.add_rotation_sequence(wire_id, [angle, 0])
-
-    def h(self, wire_id) -> None:
-        self.add_rotation_sequence(wire_id, [0, pi/2, pi/2, pi/2])
-
-    def t(self, wire_id) -> None:
-        self.add_rotation_sequence(wire_id, [pi/4, 0])
-
-    def measurement_dependencies(self):
-        corrections: Dict[(int, int), Set[(int, int)]] = dict()
-
-    def draw(self) -> None:
-        labels = {
-            label: "{:.2f}".format(self._angle_map[label]) if label in self._angle_map else 'out{}'.format(label[1]) for label in self._G.nodes()}
-        pos = {label: label for label in self._G.nodes()}
-        nx.draw(self._G, pos=pos, labels=labels, width=1,
-                node_color='w', node_size=1e3, edgecolors='k')
-
-    def to_graph_state(self) -> GraphState:
-        angles = self._angle_map
-        for line in range(self.size):
-            ptr = self._stack_ptrs[line]
-            angles[(ptr, line)] = None
-
-        pos = {node: node for node in self._G.nodes()}
-        bases = dict()
-        for ni in self._G.nodes():
-            bases[ni] = Node(angles[ni], ni)
-        dag = nx.DiGraph(self._G)
-        return GraphState(self._G, dag, pos, bases)
+    # def __init__(self, size):
+    #     # A map between locations to measurement base
+    #     self.angle_map: Dict[(int, int), float] = dict()
+    #     # Stack pointer
+    #     self.stack_ptrs: List = [0] * size
+    #     # Graph buffer object
+    #     self.G = nx.Graph()
+    #     # Register of byproduct corrections
+    #     self.correction_reg: List[List[int]] = [set()] * size
+    #     # Register size
+    #     self.size = size
+    #
+    # def add_rotation_sequence(self, wire_id: int, angle_arr: List[float]) -> None:
+    #     """
+    #     Add a series of single unitary rotations to a space-like wire
+    #     """
+    #     # Obtain the top pointer of the stack
+    #     ptr = self.stack_ptrs[wire_id]
+    #     # Add each single qubit rotation
+    #     for angle in angle_arr:
+    #         self.angle_map[(ptr, wire_id)] = angle
+    #         self.G.add_edge((ptr, wire_id), (ptr + 1, wire_id))
+    #         ptr += 1
+    #     # Update the stack pointers
+    #     self.stack_ptrs[wire_id] = ptr
+    #     # update correction operators
+    #
+    #
+    # def cnot(self, target_id: int, control_id: int) -> None:
+    #     """
+    #     Apply CNOT gate
+    #     """
+    #     # Get the stack pointers
+    #     target_ptr = self.stack_ptrs[target_id]
+    #     control_ptr = self.stack_ptrs[control_id]
+    #     # Add iter-wire edge
+    #     # self.G.add_edge((target_ptr + 3, target_id),
+    #     #                 (control_ptr + 3, control_id))
+    #     # # Add rotations
+    #     # self.add_rotation_sequence(
+    #     #     target_id, [pi, pi / 2, pi / 2, 0, pi / 2, pi / 2])
+    #     # self.add_rotation_sequence(
+    #     #     control_id, [0, 0, 0, 0, 0, 0])
+    #
+    #     # A reduced CNOT-edge
+    #     self.G.add_edge((control_ptr + 1, control_id), (target_ptr, target_id))
+    #
+    # def x(self, wire_id) -> None:
+    #     self.add_rotation_sequence(wire_id, [0, pi])
+    #
+    # def z(self, wire_id) -> None:
+    #     self.add_rotation_sequence(wire_id, [pi, 0])
+    #
+    # def s(self, wire_id) -> None:
+    #     self.add_rotation_sequence(wire_id, [pi / 2, 0])
+    #
+    # def rx(self, wire_id, angle) -> None:
+    #     self.add_rotation_sequence(wire_id, [0, angle])
+    #
+    # def rz(self, wire_id, angle) -> None:
+    #     self.add_rotation_sequence(wire_id, [angle, 0])
+    #
+    # def h(self, wire_id) -> None:
+    #     self.add_rotation_sequence(wire_id, [0, pi / 2, pi / 2, pi / 2])
+    #
+    # def t(self, wire_id) -> None:
+    #     self.add_rotation_sequence(wire_id, [pi / 4, 0])
+    #
+    # def update_correction(self) -> None:
+    #     """
+    #     Update correction registers.
+    #     """
+    #     pass
+    #
+    # def draw(self) -> None:
+    #     labels = {
+    #         label: "{:.2f}".format(self.angle_map[label]) if label in self.angle_map else 'out{}'.format(label[1]) for
+    #         label in self.G.nodes()}
+    #     pos = {label: label for label in self.G.nodes()}
+    #     nx.draw(self.G, pos=pos, labels=labels, width=1,
+    #             node_color='w', node_size=1e3, edgecolors='k')
+    #
+    # def to_graph_state(self) -> GraphState:
+    #     angles = self.angle_map
+    #     for line in range(self.size):
+    #         ptr = self.stack_ptrs[line]
+    #         angles[(ptr, line)] = None
+    #
+    #     pos = {node: node for node in self.G.nodes()}
+    #     bases = dict()
+    #     for ni in self.G.nodes():
+    #         bases[ni] = Node(angles[ni], ni)
+    #     dag = nx.DiGraph(self.G)
+    #     return GraphState(self.G, dag, pos, bases)
 
     # def add_x(self, reg):
     #     self.lines[reg].append('X')
@@ -205,7 +244,7 @@ class ClusterState:
     #         self.operator_buffer[i] = []
     #         self.location_buffer[i] = []
 
-    # def to_graph_state(self):
+    # def toGraph_state(self):
     #     # Generate graph state
     #     graph_state = GraphState()
     #     # Create label to position map
@@ -272,3 +311,56 @@ class ClusterState:
     #             else:
     #                 correction.rotate_sqrt_z(-1)
     #             ptr += 1
+
+
+class BlochSphere:
+    def __init__(self, vector):
+        self.vector = vector
+
+    def rotate(self, angle: float, base: str) -> None:
+        if base == 'x':
+            self.rotate_x(angle)
+        elif base == 'y':
+            self.rotate_y(angle)
+        elif base == 'z':
+            self.rotate_z(angle)
+        else:
+            raise Exception("Invalid base")
+
+    def rotate_x(self, angle) -> None:
+        self.vector[1], self.vector[2] = \
+            BlochSphere.rotate_coordinates(angle, self.vector[1], self.vector[2])
+
+    def rotate_y(self, angle) -> None:
+        self.vector[2], self.vector[0] = \
+            BlochSphere.rotate_coordinates(angle, self.vector[2], self.vector[0])
+
+    def rotate_z(self, angle) -> None:
+        self.vector[0], self.vector[1] = \
+            BlochSphere.rotate_coordinates(angle, self.vector[0], self.vector[1])
+
+    def flip_x(self) -> None:
+        self.vector[1], self.vector[2] = -self.vector[1], -self.vector[2]
+
+    def flip_y(self) -> None:
+        self.vector[2], self.vector[0] = -self.vector[2], -self.vector[0]
+
+    def flip_z(self) -> None:
+        self.vector[0], self.vector[1] = -self.vector[0], -self.vector[1]
+
+    def rotate_sqrt_x(self, direction):
+        self.vector[1], self.vector[2] = -direction * self.vector[2], direction * self.vector[1]
+
+    def rotate_sqrt_y(self, direction):
+        self.vector[2], self.vector[0] = -direction * self.vector[0], direction * self.vector[2]
+
+    def rotate_sqrt_z(self, direction):
+        self.vector[0], self.vector[1] = -direction * self.vector[1], direction * self.vector[0]
+
+    @staticmethod
+    def rotate_coordinates(angle: float, rx: float, ry: float):
+        return cos(angle) * rx - sin(angle) * ry, \
+               sin(angle) * rx + cos(angle) * ry
+
+    def __repr__(self):
+        return "Bloch sphere object with vector {}".format(self.vector)
