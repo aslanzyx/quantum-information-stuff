@@ -1,5 +1,4 @@
 from graphoptim.core import ClusterState
-from graphoptim.core import BlochSphere
 import unittest
 from math import pi
 import numpy as np

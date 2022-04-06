@@ -1,4 +1,4 @@
-from graphoptim.core.BlochSphere import BlochSphere
+from graphoptim.core import BlochSphere
 import unittest
 from math import pi
 import numpy as np
