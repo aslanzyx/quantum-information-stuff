@@ -81,27 +81,42 @@ class GraphState:
 
             if self._verbose >= 2:
                 print(f"simulating qubit {label} in base {base} with direction {direction}")
-
             if base == 'x':
                 self.x_measurement(label)
             elif base == 'y':
                 self.y_measurement(label)
             elif base == 'z':
                 self.z_measurement(label)
+            else:
+                return False
+            return True
+        return False
+
+    def eliminate_clifford(self):
+        # succeed = True
+        # while succeed:
+        succeed = self.eliminate_pauli()
+        self.eliminate_disconnected()
+        self.fuse_nodes()
 
     def eliminate_pauli(self):
         # self.draw()
         # plt.title(f"Initial graph state with {len(self.geometry.nodes())} nodes")
         # plt.show()
 
+        flag = False
         # Step 1 eliminate pauli
         for node in self.geometry.nodes():
-            self.measure(node)
+            f = self.measure(node)
+            flag = flag or f
 
-    def eliminate_disconnected(self):
         # self.draw()
         # plt.title(f"Reduced linear graph state consist {len(self.geometry.nodes())} nodes")
         # plt.show()
+
+        return flag
+
+    def eliminate_disconnected(self):
 
         # step 2 remove isolated nodes
         for node in self.geometry.nodes():
@@ -115,22 +130,34 @@ class GraphState:
         # plt.show()
 
     def fuse_nodes(self):
-        # for node in self.geometry.nodes():
-        #     if node not in self.output_layer \
-        #             and self.bases.measurement_plane(node) == "zy" \
-        #             and self.geometry.degree(node) == 1:
-        #         adjacent = self.geometry.neighbours(node).pop()
-        #         # Fuse the angle
-        #         angle = self.bases.angle(node)
-        #         self.bases.rotate(adjacent, angle, 'z')
-        #         self.bases.cutoff(node)
-        #         self.geometry.cutoff(node)
-        #         self.dependency.cutoff(node)
+
+        for node in self.geometry.nodes():
+            # print(f"{node} is measured in {self.bases.measurement_plane(node)} plane "
+            #       f"dependent on nodes {self.dependency.dep_map[node]}")
+            # If it is a non-output leaf node and measured in ZY-plane
+            if self.geometry.degree(node) == 1 and \
+                    self.bases.measurement_plane(node) == 'zy' and \
+                    node not in self.output_layer and \
+                    self.bases.measurement_plane(list(self.geometry.neighbours(node))[0]) == 'xy':
+
+                center = list(self.geometry.neighbours(node))[0]
+
+                if self.dependency.correction_base(node) != 'z':
+                    self.local_complement(node)
+                # Update the angle on the center node
+                # print(f"{center} has angle {self.bases.angle(center)}")
+                self.bases.rotate(center, -self.bases.angle(node), 'z')
+                # print(f"{center} is rotated by {self.bases.angle(node)} rad")
+                # print(f"{center} has angle {self.bases.angle(center)} after the rotation")
+                # Cutoff the leaf node
+                self.dependency.cutoff(node)
+                self.geometry.cutoff(node)
+                self.bases.cutoff(node)
+                # print(f"{node} is fused")
+
         # self.draw()
-        #
         # plt.title(f"graph state with nodes fused consist{len(self.geometry.nodes())} nodes")
         # plt.show()
-        return
 
     def schedule(self) -> (List[any], int):
         """
@@ -165,6 +192,83 @@ class GraphState:
                 if len(delta_set) == 0 and (node_min is None or geometry.degree(node) > geometry.degree(node_min)):
                     node_min = node
                     delta = 0
+
+                elif len(delta_set) < delta:
+                    delta = len(delta_set)
+                    node_min = node
+                    delta_set_min = delta_set
+
+            # Compute the resource required
+            size = max(size, len(qreg) + delta)
+            # print(f"{node_min} is measured with delta={delta} and register size {size}")
+
+            # Add the node and neighbours to the virtual register
+            for node in delta_set_min:
+                qreg.add(node)
+            for node in geometry.nodes():
+                if node in dep_map:
+                    if node_min in dep_map[node]:
+                        dep_map[node].remove(node_min)
+
+            # Remove node from graph and push the node to the measurement sequence
+            geometry.remove_node(node_min)
+            qreg.remove(node_min)
+            queue.remove(node_min)
+            sequence.append(node_min)
+
+        # Verify sequence
+        for i in range(len(sequence)):
+            if sequence[i] in dep_map:
+                for source in dep_map[sequence[i]]:
+                    if source in sequence[i:]:
+                        print(f"error: {sequence[i]} measured before {source}")
+                        break
+
+        # print(f"scheduled with size {size}")
+
+        return sequence, size
+
+    def schedule_2(self) -> (List[any], int):
+        """
+        Schedule an optimized measurement sequence
+        :return: a queue of nodes as measurement sequence and the size of register required
+        """
+        # Allocate space for helper data
+        geometry: nx.Graph = nx.Graph.copy(self.geometry.G)
+        dep_map: Dict[any, Set[any]] = {node: self.dependency.dep_map[node].copy() for node in
+                                        self.dependency.dep_map.keys()}
+        qreg: Set[any] = set()  # virtual register
+        queue: Set[any] = set()  # measurable queue
+        sequence: List[any] = []  # measurement sequence
+        size: int = 0  # qubits required
+
+        # loop until everything is measured
+        while len(geometry.nodes()) > 0:
+            # Search for all measurable qubit
+            for node in geometry.nodes():
+                if node not in dep_map or len(dep_map[node]) == 0:
+                    queue.add(node)
+
+            # Search for the qubit to measure
+            delta: int = np.inf
+            node_min: any = None
+            delta_set_min: Set[any] = set()
+            for node in queue:
+                delta_set = set(geometry.neighbors(node))
+                delta_set.add(node)
+                delta_set = delta_set.difference(qreg)
+                # CASE 1: delta = 0
+                if len(delta_set) == 0 and (node_min is None or geometry.degree(node) > geometry.degree(node_min)):
+                    node_min = node
+                    delta = 0
+
+                # TEST: choose the option closest to current register size
+                elif len(delta_set) < size:
+                    if len(delta_set) > delta or node_min is None:
+                        delta = len(delta_set)
+                        node_min = node
+                        delta_set_min = delta_set
+
                 elif len(delta_set) < delta:
                     delta = len(delta_set)
                     node_min = node
@@ -328,15 +432,15 @@ class GraphState:
                                    for node in self.geometry.nodes()],
                                edgecolors='k',
                                node_size=[
-                                   100 if node in self.output_layer
+                                   60 if node in self.output_layer
                                    else 50
                                    for node in self.geometry.nodes()], ax=ax)
         # nx.draw_networkx_labels(self.geometry.G, pos,
         #                         labels={
         #                             label: f"{self.dependency.correction_base(label)}"
         #                             for label in self.geometry.nodes()})
-        nx.draw_networkx_edges(self.dependency.to_dag(), pos,
-                               edge_color='c', connectionstyle="arc3,rad=0.1", arrows=True)
+        # nx.draw_networkx_edges(self.dependency.to_dag(), pos,
+        #                        edge_color='c', connectionstyle="arc3,rad=0.1", arrows=True)
         nx.draw_networkx_edges(self.geometry.G, pos, arrows=False)
 
     def draw(self, ax=None) -> None:
@@ -347,3 +451,24 @@ class GraphState:
             self.draw_graph(ax)
         else:
             self.draw_cluster(ax)
+
+    # Other stuff for assertion
+    # Assert measurement dependencies on fusion nodes
+    def assert_fusion_nodes(self):
+        for node in self.geometry.nodes():
+            if self.geometry.degree(node) == 1 and \
+                    self.bases.measurement_plane(node) == 'zy' and \
+                    node not in self.output_layer:
+                if node in self.dependency.dep_map:
+                    center = list(self.geometry.neighbours(node))[0]
+                    # print(f"{node} is to be fused into with dependencies {graph.dependency.dep_map[node]}")
+                    # print(f"{center} is dependent on {graph.dependency.dep_map[center]}")
+                    # print(graph.dependency.dep_map[node] == graph.dependency.dep_map[center])
+                    if center in self.dependency.dep_map:
+                        if not self.dependency.dep_map[node] == self.dependency.dep_map[center]:
+                            print(f"center dependencies on node {center} does not agree"
+                                  f"measured in {self.bases.measurement_plane(center)} plane")
+                    else:
+                        print(
+                            f"no center dependencies on node {center} "
+                            f"measured in {self.bases.measurement_plane(center)} plane")

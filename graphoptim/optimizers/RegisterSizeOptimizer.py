@@ -1,3 +1,4 @@
+import json
 from typing import List, Set, Dict
 
 import networkx as nx
@@ -6,8 +7,8 @@ import numpy as np
 from graphoptim.core import GeometryLayer, GraphState
 
 
-class GeometryOptimizer:
-    def __init__(self, geometry: GeometryLayer, graph_state, max_depth: int = 100):
+class RegisterSizeOptimizer:
+    def __init__(self, graph_state: GraphState, max_depth: int = 100):
 
         self.optimized_idx = 0
         self.minimax_degree = np.inf
@@ -16,13 +17,14 @@ class GeometryOptimizer:
         self.depth = 0
 
         self.current_graph_idx = 0
-        self.current_geometry = geometry
+        self.current_geometry = graph_state.geometry
 
         self.graph_traversed: List[nx.Graph] = []
         self.lc_map: List[(int, any)] = []
 
         self.graph_state: GraphState = graph_state
         self.minimax_size = np.inf
+        self.track = []
 
     def has_isomorphic(self):
         for H in self.graph_traversed:
@@ -30,20 +32,19 @@ class GeometryOptimizer:
                 return True
         return False
 
-    def lc_delta(self, node: any) -> (Dict[any, int], Set[any], int):
-
-        search_set = self.current_geometry.neighbours(node)
-        delta: Dict[any, int] = {node: degree for node, degree in
-                                 self.current_geometry.nodes(search_set)}
-        self.current_geometry.local_complement(node)
-        for node, degree in self.current_geometry.nodes(search_set):
-            delta[node] = degree - delta[node]
-        self.current_geometry.local_complement(node)
-
-        return delta, self.current_geometry.max_degree_nodes(self.current_geometry.G, search_set)
+    # def lc_delta(self, node: any) -> (Dict[any, int], Set[any], int):
+    #
+    #     search_set = self.current_geometry.neighbours(node)
+    #     delta: Dict[any, int] = {node: degree for node, degree in
+    #                              self.current_geometry.nodes(search_set)}
+    #     self.current_geometry.local_complement(node)
+    #     for node, degree in self.current_geometry.nodes(search_set):
+    #         delta[node] = degree - delta[node]
+    #     self.current_geometry.local_complement(node)
+    #
+    #     return delta, self.current_geometry.max_degree_nodes(self.current_geometry.G, search_set)
 
     def execute(self):
-        # lc_nodes_todo = self.current_geometry.boundary_nodes(max_degree_nodes)
         _, size = self.graph_state.schedule()
         lc_nodes_todo = list(self.current_geometry.nodes())
         cur_id = len(self.lc_map) - 1
@@ -53,23 +54,25 @@ class GeometryOptimizer:
             self.minimax_size = size
 
         # Compute metadata for LC graphs on each node
-        metadata: List[(any, int)] = []
-        for node in lc_nodes_todo:
-            self.current_geometry.local_complement(node)
-            _, size = self.graph_state.schedule()
-            self.current_geometry.local_complement(node)
-            # if degree < max_degree:
-            metadata.append((node, size))
-
-        metadata.sort(key=lambda meta: meta[1])
+        # metadata: List[(any, int)] = []
+        # for node in lc_nodes_todo:
+        #     self.current_geometry.local_complement(node)
+        #     _, size = self.graph_state.schedule()
+        #     self.current_geometry.local_complement(node)
+        #     metadata.append((node, size))
+        #
+        # metadata.sort(key=lambda meta: meta[1])
 
         self.depth += 1
-        if self.depth == 500:
-            return
+        self.track.append({"depth": self.depth,
+                           "reg_size": size,
+                           "max_degree": self.current_geometry.max_degree_nodes()[1],
+                           "edge_size": len(self.current_geometry.G.edges())})
+        # print(f"reached depth {self.depth} with size {size}")
 
-        for node, _ in metadata:
+        for node in lc_nodes_todo:
             self.current_geometry.local_complement(node)
-            if not self.has_isomorphic() and self.depth < self.max_depth:
+            if not self.has_isomorphic():
                 # DP: record current geometry
                 self.lc_map.append((cur_id, node))
                 self.graph_traversed.append(nx.Graph.copy(self.current_geometry.G))
@@ -77,41 +80,8 @@ class GeometryOptimizer:
                 # DFS recursion
                 self.execute()
             self.current_geometry.local_complement(node)
-
-        # max_degree_nodes, max_degree = self.current_geometry.max_degree_nodes()
-        # # lc_nodes_todo = self.current_geometry.boundary_nodes(max_degree_nodes)
-        # lc_nodes_todo = list(self.current_geometry.nodes())
-        # cur_id = len(self.lc_map) - 1
-        #
-        # if max_degree < self.minimax_degree:
-        #     self.optimized_idx = cur_id
-        #     self.minimax_degree = max_degree
-        #
-        # # Compute metadata for LC graphs on each node
-        # metadata: List[(any, int)] = []
-        # for node in lc_nodes_todo:
-        #     self.current_geometry.local_complement(node)
-        #     _, degree = self.current_geometry.max_degree_nodes()
-        #     self.current_geometry.local_complement(node)
-        #     # if degree < max_degree:
-        #     metadata.append((node, degree))
-        #
-        # metadata.sort(key=lambda meta: meta[1])
-        #
-        # self.depth += 1
-        # if self.depth == 500:
-        #     return
-        #
-        # for node, _ in metadata:
-        #     self.current_geometry.local_complement(node)
-        #     if not self.has_isomorphic() and self.depth < self.max_depth:
-        #         # DP: record current geometry
-        #         self.lc_map.append((cur_id, node))
-        #         self.graph_traversed.append(nx.Graph.copy(self.current_geometry.G))
-        #
-        #         # DFS recursion
-        #         self.execute()
-        #     self.current_geometry.local_complement(node)
+            if self.depth >= self.max_depth:
+                break
 
     def optimized_lc_sequence(self) -> List[any]:
         ptr: int = self.optimized_idx
@@ -122,3 +92,9 @@ class GeometryOptimizer:
             sequence.append(node)
 
         return sequence[::-1]
+
+    def save_track(self, filename):
+        with open(filename, 'w') as f:
+            track = {log["depth"]: log for log in self.track}
+            track["node_size"] = len(self.current_geometry.nodes())
+            json.dump(track, f)

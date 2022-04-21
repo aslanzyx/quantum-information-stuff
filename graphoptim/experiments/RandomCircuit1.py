@@ -8,7 +8,7 @@ from math import pi
 from graphoptim.core import ClusterState
 
 
-def random_circuit1(m, n, density, shot):
+def random_circuit(m, n, density, shot):
     k = int(n * density)
     cluster = ClusterState(n)
     circuit = QuantumCircuit(n, n)
@@ -53,12 +53,12 @@ def random_circuit1(m, n, density, shot):
     _, degree = graph.geometry.max_degree_nodes()
 
     # Draw first graph
-    graph.draw()
-    plt.title(f"max degree {degree}, scheduled with {size} qubit")
-    plt.show()
+    # graph.draw()
+    # plt.title(f"max degree {degree}, scheduled with {size} qubit")
+    # plt.show()
 
     # Search for an optimized geometry
-    go = GeometryOptimizer(graph.geometry, graph)
+    go = GeometryOptimizer(graph.geometry)
     go.execute()
     print(f"geometry optimized with degree {go.minimax_degree}")
 
@@ -76,6 +76,9 @@ def random_circuit1(m, n, density, shot):
     graph.draw()
     plt.title(f"optimized max degree {degree}, scheduled with {size} qubit")
     plt.show()
+
+    # Assert for fusion nodes
+    graph.assert_fusion_nodes()
 
     # counts_mbqc = graph.run(shot)
 
@@ -95,4 +98,4 @@ def random_circuit1(m, n, density, shot):
     # plt.show()
 
 
-random_circuit1(5, 30, .6, 10000)
+random_circuit(6, 10, .6, 10000)

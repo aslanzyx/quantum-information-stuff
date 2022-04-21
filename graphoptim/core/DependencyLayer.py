@@ -29,6 +29,8 @@ class MeasurementDependencyLayer:
     def cutoff(self, node):
         if node in self.correction.keys():
             self.correction.pop(node)
+        if node in self.dep_map.keys():
+            self.dep_map.pop(node)
         for target, sources in self.dep_map.items():
             if node in sources:
                 self.dep_map[target].remove(node)

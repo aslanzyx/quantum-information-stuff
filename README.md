@@ -7,6 +7,9 @@ This is the code for my undergraduate thesis project on quantum computation. In 
 ## What is the motivation?
 ### Advantage of MBQC, if an 
 
+## What is this project about?
+This is the code for my undergraduate thesis project on quantum computation. In this project, I am building an engine optimize qunatum resource use
+
 ## Unitary circuit to MBQC
 please refer to `./graphoptim/experiments/DemoMBQC.py` for the use of `ClusterState`.
 
