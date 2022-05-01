@@ -8,10 +8,10 @@ class MeasurementSequenceScheduler:
         self.geometry: nx.Graph = nx.Graph.copy(geometry)
         self.dep_map: Dict[any, Set[any]] = {node: dep_map[node].copy() for node in
                                              dep_map.keys()}
-        self.qreg: Set[any] = set()  # virtual register
-        self.queue: Set[any] = set()  # measurable queue
-        self.sequence: List[any] = []  # measurement sequence
-        self.size: int = 0  # qubits required
+        self.qreg: Set[any] = set()     # virtual register
+        self.queue: Set[any] = set()    # measurable queue
+        self.sequence: List[any] = []   # measurement sequence
+        self.size: int = 0              # qubits required
 
     def schedule(self) -> (List[any], int):
         """
@@ -19,7 +19,7 @@ class MeasurementSequenceScheduler:
         :return: a queue of nodes as measurement sequence and the size of register required
         """
 
-        # loop until everything is measured
+        # Loop until everything is measured
         while len(self.geometry.nodes()) > 0:
             # Search for all measurable qubit
             for node in self.geometry.nodes():
@@ -41,7 +41,7 @@ class MeasurementSequenceScheduler:
 
             # Compute the resource required
             self.size = max(self.size, len(self.qreg) + delta)
-            print(f"{node_min} is measured with delta={delta} and register size {size}")
+            print(f"{node_min} is measured with delta={delta} and register size {self.size}")
 
             # Add the node and neighbours to the virtual register
             for node in delta_set_min:
@@ -65,4 +65,4 @@ class MeasurementSequenceScheduler:
                         print(f"error: {self.sequence[i]} measured before {source}")
                         break
 
-        print(f"scheduled with size {size}")
+        print(f"scheduled with size {self.size}")
